@@ -64,7 +64,7 @@
 `else
     .m_gen2_mode(1'b1),
 `endif
-    .i_osc_clk(intf_m1.i_osc_clk),   //Only for master mode
+    //.i_osc_clk(intf_m1.i_osc_clk),   //Only for master mode
 
     //AVMM interface
     .i_cfg_avmm_clk(avmm_if_m1.clk),

@@ -25,7 +25,7 @@ module aib_sm
     input                  ms_rx_dcc_dll_lock_req,
     input                  ms_tx_dcc_dll_lock_req,
     input                  ms_rx_dll_lockint,   
-    input                  ms_tx_dcc_cal_doneint,
+    input                  ms_tx_dcc_cal_doneint, // esse daqui
     input                  ms_tx_dcc_cal_donei,
     input                  ms_rx_dll_locki,   
     input                  ms_rx_transfer_eni,
@@ -44,10 +44,10 @@ module aib_sm
     input                  sl_tx_dcc_dll_lock_req,
     input                  sl_rx_dcc_dll_lock_req,
     input                  sl_rx_dll_lockint, //from slave internal
-    input                  sl_rx_dll_locki,   //from sr interface
+    input                  sl_rx_dll_locki,   //from sr interface   // depois esse daqui
     input                  sl_tx_dcc_cal_donei, //from sr interface
     input                  sl_tx_dcc_cal_doneint,  //from slave internal
-    input                  sl_rx_transfer_eni,
+    input                  sl_rx_transfer_eni,  // so depois esse daqui
     input                  sl_osc_transfer_eni,
     input                  ms_nsl, //"1", this is a Master. "0", this is a Slave
     input                  atpg_mode,
