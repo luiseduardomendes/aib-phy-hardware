@@ -1,42 +1,71 @@
-// FILE: aib_avmm_glue_logic.v (Corrected Version)
+// SPDX-License-Identifier: Apache-2.0
+// Copyright (C) 2022 HCL Technologies Ltd.
+// Copyright (C) 2022 Blue Cheetah Analog Design, Inc.
 
-module aib_avmm_glue_logic #(
-    parameter NBR_CHNLS = 24
-) (
-    // Inputs
-    input [NBR_CHNLS-1:0] i_waitreq_ch,
-    input [NBR_CHNLS-1:0] i_rdatavld_ch,
-    input [32*NBR_CHNLS-1:0] i_rdata_ch,
-    
-    // Outputs
-    output     o_waitreq,
-    output     o_rdatavld,
-    output reg [31:0] o_rdata // <<< FIX: Changed from 'output' to 'output reg'
+module aib_avmm_glue_logic( 
+// Inputs
+input [23:0] i_waitreq_ch,      // Wait request of each channel
+input [23:0] i_rdatavld_ch,     // Read data valid of  each channel
+input [31:0] o_rdata_ch_0,      // Channel 0 read data bus
+input [31:0] o_rdata_ch_1,      // Channel 1 read data bus
+input [31:0] o_rdata_ch_2,      // Channel 2 read data bus
+input [31:0] o_rdata_ch_3,      // Channel 3 read data bus
+input [31:0] o_rdata_ch_4,      // Channel 4 read data bus
+input [31:0] o_rdata_ch_5,      // Channel 5 read data bus
+input [31:0] o_rdata_ch_6,      // Channel 6 read data bus
+input [31:0] o_rdata_ch_7,      // Channel 7 read data bus
+input [31:0] o_rdata_ch_8,      // Channel 8 read data bus
+input [31:0] o_rdata_ch_9,      // Channel 9 read data bus
+input [31:0] o_rdata_ch_10,     // Channel 10 read data bus
+input [31:0] o_rdata_ch_11,     // Channel 11 read data bus
+input [31:0] o_rdata_ch_12,     // Channel 12 read data bus
+input [31:0] o_rdata_ch_13,     // Channel 13 read data bus
+input [31:0] o_rdata_ch_14,     // Channel 14 read data bus
+input [31:0] o_rdata_ch_15,     // Channel 15 read data bus
+input [31:0] o_rdata_ch_16,     // Channel 16 read data bus
+input [31:0] o_rdata_ch_17,     // Channel 17 read data bus
+input [31:0] o_rdata_ch_18,     // Channel 18 read data bus
+input [31:0] o_rdata_ch_19,     // Channel 19 read data bus
+input [31:0] o_rdata_ch_20,     // Channel 20 read data bus
+input [31:0] o_rdata_ch_21,     // Channel 21 read data bus
+input [31:0] o_rdata_ch_22,     // Channel 22 read data bus
+input [31:0] o_rdata_ch_23,     // Channel 23 read data bus
+input        avmm_rdatavld_top, // Top register valid read data
+input [31:0] avmm_rdata_top,    // Top register read data bus
+input        avmm_waitreq_top,  // Top register wait request
+// Outputs
+output        o_waitreq,  // Wait request
+output        o_rdatavld, // Read data valid
+output [31:0] o_rdata     // Read data bus
 );
 
-    // The reduction logic is now scalable and works for any NBR_CHNLS.
-    assign o_waitreq  = &i_waitreq_ch;
-    assign o_rdatavld = |i_rdatavld_ch;
+assign o_waitreq  = (&i_waitreq_ch)  & avmm_waitreq_top;
+assign o_rdatavld = (|i_rdatavld_ch) | avmm_rdatavld_top;
 
-    // The read data bus is now a scalable priority mux instead of a giant OR-gate.
-    // It selects the data from the first channel that has valid data.
-    wire [31:0] rdata_lanes [0:NBR_CHNLS-1];
-    genvar i;
-    generate
-        for (i = 0; i < NBR_CHNLS; i = i + 1) begin : gen_rdata_unpack
-            assign rdata_lanes[i] = i_rdata_ch[(i+1)*32-1 -: 32];
-        end
+assign o_rdata[31:0] = o_rdata_ch_0[31:0]   |
+                       o_rdata_ch_1[31:0]   |
+                       o_rdata_ch_2[31:0]   |
+                       o_rdata_ch_3[31:0]   |
+                       o_rdata_ch_4[31:0]   |
+                       o_rdata_ch_5[31:0]   |
+                       o_rdata_ch_6[31:0]   |
+                       o_rdata_ch_7[31:0]   |
+                       o_rdata_ch_8[31:0]   |
+                       o_rdata_ch_9[31:0]   |
+                       o_rdata_ch_10[31:0]  |
+                       o_rdata_ch_11[31:0]  |
+                       o_rdata_ch_12[31:0]  |
+                       o_rdata_ch_13[31:0]  |
+                       o_rdata_ch_14[31:0]  |
+                       o_rdata_ch_15[31:0]  |
+                       o_rdata_ch_16[31:0]  |
+                       o_rdata_ch_17[31:0]  |
+                       o_rdata_ch_18[31:0]  |
+                       o_rdata_ch_19[31:0]  |
+                       o_rdata_ch_20[31:0]  |
+                       o_rdata_ch_21[31:0]  |
+                       o_rdata_ch_22[31:0]  |
+                       o_rdata_ch_23[31:0]  |
+                       avmm_rdata_top[31:0];
 
-        integer j;
-        // This always block now correctly assigns to a 'reg' type.
-        always @* begin
-            o_rdata = 32'b0; // Default value
-            for (j = 0; j < NBR_CHNLS; j = j + 1) begin
-                if (i_rdatavld_ch[j]) begin
-                    o_rdata = rdata_lanes[j];
-                end
-            end
-        end
-    endgenerate
-
-endmodule
+endmodule // avalon_glue_logic

@@ -32,7 +32,6 @@ interface dut_if_mac #(parameter DWIDTH = 40, parameter TOTAL_CHNL_NUM = 24)
     logic [TOTAL_CHNL_NUM-1:0]            ns_mac_rdy;
     logic [TOTAL_CHNL_NUM-1:0]            fs_mac_rdy;
 
-    logic                                 i_osc_clk; 
     logic                                 i_m_power_on_reset;
     logic                                 o_m_power_on_reset;
     logic                                 m_por_ovrd;
