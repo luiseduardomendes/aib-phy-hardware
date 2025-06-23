@@ -543,7 +543,7 @@ generate
     for (i = ACTIVE_CHNLS; i < NBR_CHNLS; i = i + 1) begin : gen_inactive_channels
         // Tie off AVMM signals
         assign o_cfg_avmm_rdatavld_ch[i] = 1'b0;
-        assign o_cfg_avmm_waitreq_ch[i]  = 1'b0;
+        assign o_cfg_avmm_waitreq_ch[i]  = 1'b1;
         assign o_rdata_ch_packed[(i+1)*32-1 -: 32] = 32'b0;
 
         // Tie off JTAG chain
