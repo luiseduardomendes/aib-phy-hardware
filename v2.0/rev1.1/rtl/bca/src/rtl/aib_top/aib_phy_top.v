@@ -229,6 +229,8 @@ wire [31:0]  o_rdata_ch_21;
 wire [31:0]  o_rdata_ch_22;
 wire [31:0]  o_rdata_ch_23;
 wire [ 3:0]  o_aux_spare_nc;
+// Intermediate array for generate loop -> glue logic connection
+wire [31:0] o_rdata_ch_gen[NBR_CHNLS-1:0];
 
 wire [1:0] clkdiv_adc0;
 wire [2:0] adc0_muxsel;
@@ -355,222 +357,275 @@ wire [6:0] adc_anain_1;
 wire [6:0] adc_anain_2;
 wire [6:0] adc_anain_3;
 wire [6:0] adc_anain_4;
-assign o_jtag_tdo = o_jtag_tdo_ch[23];
 
-
-// <<< FIX: Re-declared individual channel wires as arrays for use in generate blocks
-wire [NBR_CHNLS-1:0] o_cfg_avmm_rdatavld_ch;
-wire [NBR_CHNLS-1:0] o_cfg_avmm_waitreq_ch;
-wire [NBR_CHNLS-1:0] o_jtag_tdo_ch; 
-wire [32*NBR_CHNLS-1:0] o_rdata_ch_packed; // Packed array for glue logic
-
-// <<< FIX: Create a local packed array for the iopad ports to use in the generate loop
-wire [NBR_BUMPS-1:0] iopad_aib_ports [0:NBR_CHNLS-1];
-assign iopad_aib_ports[0] = iopad_ch0_aib;
-assign iopad_aib_ports[1] = iopad_ch1_aib;
-assign iopad_aib_ports[2] = iopad_ch2_aib;
-assign iopad_aib_ports[3] = iopad_ch3_aib;
-assign iopad_aib_ports[4] = iopad_ch4_aib;
-assign iopad_aib_ports[5] = iopad_ch5_aib;
-assign iopad_aib_ports[6] = iopad_ch6_aib;
-assign iopad_aib_ports[7] = iopad_ch7_aib;
-assign iopad_aib_ports[8] = iopad_ch8_aib;
-assign iopad_aib_ports[9] = iopad_ch9_aib;
-assign iopad_aib_ports[10] = iopad_ch10_aib;
-assign iopad_aib_ports[11] = iopad_ch11_aib;
-assign iopad_aib_ports[12] = iopad_ch12_aib;
-assign iopad_aib_ports[13] = iopad_ch13_aib;
-assign iopad_aib_ports[14] = iopad_ch14_aib;
-assign iopad_aib_ports[15] = iopad_ch15_aib;
-assign iopad_aib_ports[16] = iopad_ch16_aib;
-assign iopad_aib_ports[17] = iopad_ch17_aib;
-assign iopad_aib_ports[18] = iopad_ch18_aib;
-assign iopad_aib_ports[19] = iopad_ch19_aib;
-assign iopad_aib_ports[20] = iopad_ch20_aib;
-assign iopad_aib_ports[21] = iopad_ch21_aib;
-assign iopad_aib_ports[22] = iopad_ch22_aib;
-assign iopad_aib_ports[23] = iopad_ch23_aib;
-// Assign back for inout behavior
-assign iopad_ch0_aib = iopad_aib_ports[0];
-assign iopad_ch1_aib = iopad_aib_ports[1];
-assign iopad_ch2_aib = iopad_aib_ports[2];
-assign iopad_ch3_aib = iopad_aib_ports[3];
-assign iopad_ch4_aib = iopad_aib_ports[4];
-assign iopad_ch5_aib = iopad_aib_ports[5];
-assign iopad_ch6_aib = iopad_aib_ports[6];
-assign iopad_ch7_aib = iopad_aib_ports[7];
-assign iopad_ch8_aib = iopad_aib_ports[8];
-assign iopad_ch9_aib = iopad_aib_ports[9];
-assign iopad_ch10_aib = iopad_aib_ports[10];
-assign iopad_ch11_aib = iopad_aib_ports[11];
-assign iopad_ch12_aib = iopad_aib_ports[12];
-assign iopad_ch13_aib = iopad_aib_ports[13];
-assign iopad_ch14_aib = iopad_aib_ports[14];
-assign iopad_ch15_aib = iopad_aib_ports[15];
-assign iopad_ch16_aib = iopad_aib_ports[16];
-assign iopad_ch17_aib = iopad_aib_ports[17];
-assign iopad_ch18_aib = iopad_aib_ports[18];
-assign iopad_ch19_aib = iopad_aib_ports[19];
-assign iopad_ch20_aib = iopad_aib_ports[20];
-assign iopad_ch21_aib = iopad_aib_ports[21];
-assign iopad_ch22_aib = iopad_aib_ports[22];
-assign iopad_ch23_aib = iopad_aib_ports[23];
-
-
-// The final top-level TDO is the end of the JTAG chain
+//------------------------------------------------------------------------------
+// JTAG output assignment - now parameterized
+//------------------------------------------------------------------------------
 assign o_jtag_tdo = o_jtag_tdo_ch[NBR_CHNLS-1];
 
-// <<< FIX: Instantiate the corrected, scalable glue logic
-aib_avmm_glue_logic #(
-    .NBR_CHNLS(NBR_CHNLS)
-) aib_avmm_glue_logic_inst (
-    .i_waitreq_ch (o_cfg_avmm_waitreq_ch),
-    .i_rdatavld_ch(o_cfg_avmm_rdatavld_ch),
-    .i_rdata_ch   (o_rdata_ch_packed),
-    .o_waitreq    (o_cfg_avmm_waitreq),
-    .o_rdatavld   (o_cfg_avmm_rdatavld),
-    .o_rdata      (o_cfg_avmm_rdata)
+//------------------------------------------------------------------------------
+// Avalon glue logic to get channel outputs - NO CHANGES HERE
+//------------------------------------------------------------------------------
+aib_avmm_glue_logic aib_avmm_glue_logic(
+// Inputs
+.i_waitreq_ch      (o_cfg_avmm_waitreq_ch[23:0]),
+.i_rdatavld_ch     (o_cfg_avmm_rdatavld_ch[23:0]),
+.o_rdata_ch_0      (o_rdata_ch_0[31:0]),
+.o_rdata_ch_1      (o_rdata_ch_1[31:0]),
+.o_rdata_ch_2      (o_rdata_ch_2[31:0]),
+.o_rdata_ch_3      (o_rdata_ch_3[31:0]),
+.o_rdata_ch_4      (o_rdata_ch_4[31:0]),
+.o_rdata_ch_5      (o_rdata_ch_5[31:0]),
+.o_rdata_ch_6      (o_rdata_ch_6[31:0]),
+.o_rdata_ch_7      (o_rdata_ch_7[31:0]),
+.o_rdata_ch_8      (o_rdata_ch_8[31:0]),
+.o_rdata_ch_9      (o_rdata_ch_9[31:0]),
+.o_rdata_ch_10     (o_rdata_ch_10[31:0]),
+.o_rdata_ch_11     (o_rdata_ch_11[31:0]),
+.o_rdata_ch_12     (o_rdata_ch_12[31:0]),
+.o_rdata_ch_13     (o_rdata_ch_13[31:0]),
+.o_rdata_ch_14     (o_rdata_ch_14[31:0]),
+.o_rdata_ch_15     (o_rdata_ch_15[31:0]),
+.o_rdata_ch_16     (o_rdata_ch_16[31:0]),
+.o_rdata_ch_17     (o_rdata_ch_17[31:0]),
+.o_rdata_ch_18     (o_rdata_ch_18[31:0]),
+.o_rdata_ch_19     (o_rdata_ch_19[31:0]),
+.o_rdata_ch_20     (o_rdata_ch_20[31:0]),
+.o_rdata_ch_21     (o_rdata_ch_21[31:0]),
+.o_rdata_ch_22     (o_rdata_ch_22[31:0]),
+.o_rdata_ch_23     (o_rdata_ch_23[31:0]),
+.avmm_rdatavld_top (avmm_rdatavld_top),
+.avmm_rdata_top    (avmm_rdata_top[31:0]), 
+.avmm_waitreq_top  (avmm_waitreq_top),
+// Outputs
+.o_waitreq  (o_cfg_avmm_waitreq),
+.o_rdatavld (o_cfg_avmm_rdatavld),
+.o_rdata    (o_cfg_avmm_rdata[31:0])
 );
 
+//------------------------------------------------------------------------------
+// Intermediate wiring to connect generate loop to glue logic
+// This connects the generate loop's indexed output to the individually
+// named wires required by the aib_avmm_glue_logic instance.
+//------------------------------------------------------------------------------
+assign o_rdata_ch_0   = o_rdata_ch_gen[0];
+assign o_rdata_ch_1   = o_rdata_ch_gen[1];
+assign o_rdata_ch_2   = o_rdata_ch_gen[2];
+assign o_rdata_ch_3   = o_rdata_ch_gen[3];
+assign o_rdata_ch_4   = o_rdata_ch_gen[4];
+assign o_rdata_ch_5   = o_rdata_ch_gen[5];
+assign o_rdata_ch_6   = o_rdata_ch_gen[6];
+assign o_rdata_ch_7   = o_rdata_ch_gen[7];
+assign o_rdata_ch_8   = o_rdata_ch_gen[8];
+assign o_rdata_ch_9   = o_rdata_ch_gen[9];
+assign o_rdata_ch_10  = o_rdata_ch_gen[10];
+assign o_rdata_ch_11  = o_rdata_ch_gen[11];
+assign o_rdata_ch_12  = o_rdata_ch_gen[12];
+assign o_rdata_ch_13  = o_rdata_ch_gen[13];
+assign o_rdata_ch_14  = o_rdata_ch_gen[14];
+assign o_rdata_ch_15  = o_rdata_ch_gen[15];
+assign o_rdata_ch_16  = o_rdata_ch_gen[16];
+assign o_rdata_ch_17  = o_rdata_ch_gen[17];
+assign o_rdata_ch_18  = o_rdata_ch_gen[18];
+assign o_rdata_ch_19  = o_rdata_ch_gen[19];
+assign o_rdata_ch_20  = o_rdata_ch_gen[20];
+assign o_rdata_ch_21  = o_rdata_ch_gen[21];
+assign o_rdata_ch_22  = o_rdata_ch_gen[22];
+assign o_rdata_ch_23  = o_rdata_ch_gen[23];
 
-// <<< FIX: Removed all hard-coded channel instantiations and replaced with generate blocks
+//------------------------------------------------------------------------------
+// Intermediate array for iopad signals
+// This packs the uniquely named iopad ports into an array that can be
+// indexed by the generate loop.
+//------------------------------------------------------------------------------
+wire [NBR_BUMPS-1:0] iopad_ch_array [0:NBR_CHNLS-1];
+assign iopad_ch_array[0]  = iopad_ch0_aib;
+assign iopad_ch_array[1]  = iopad_ch1_aib;
+assign iopad_ch_array[2]  = iopad_ch2_aib;
+assign iopad_ch_array[3]  = iopad_ch3_aib;
+assign iopad_ch_array[4]  = iopad_ch4_aib;
+assign iopad_ch_array[5]  = iopad_ch5_aib;
+assign iopad_ch_array[6]  = iopad_ch6_aib;
+assign iopad_ch_array[7]  = iopad_ch7_aib;
+assign iopad_ch_array[8]  = iopad_ch8_aib;
+assign iopad_ch_array[9]  = iopad_ch9_aib;
+assign iopad_ch_array[10] = iopad_ch10_aib;
+assign iopad_ch_array[11] = iopad_ch11_aib;
+assign iopad_ch_array[12] = iopad_ch12_aib;
+assign iopad_ch_array[13] = iopad_ch13_aib;
+assign iopad_ch_array[14] = iopad_ch14_aib;
+assign iopad_ch_array[15] = iopad_ch15_aib;
+assign iopad_ch_array[16] = iopad_ch16_aib;
+assign iopad_ch_array[17] = iopad_ch17_aib;
+assign iopad_ch_array[18] = iopad_ch18_aib;
+assign iopad_ch_array[19] = iopad_ch19_aib;
+assign iopad_ch_array[20] = iopad_ch20_aib;
+assign iopad_ch_array[21] = iopad_ch21_aib;
+assign iopad_ch_array[22] = iopad_ch22_aib;
+assign iopad_ch_array[23] = iopad_ch23_aib;
+
+
+//------------------------------------------------------------------------------
+// Channel Instantiation and Stubbing Generate Loop
+// This loop iterates through all possible channels. If the channel index 'i'
+// is less than ACTIVE_CHNLS, it instantiates a full aib_channel_n module.
+// Otherwise, it stubs out the channel, tying its outputs to safe, inactive
+// values according to the AIB specification for unused channels.
+//------------------------------------------------------------------------------
 genvar i;
-
-// <<< FIX: Generate loop for the active channels
 generate
-  for (i = 0; i < ACTIVE_CHNLS; i = i + 1) begin : gen_active_channels
-    aib_channel_n #(
-      .NBR_LANES(NBR_LANES),
-      .SCAN_STR_PER_CH(SCAN_STR_PER_CH),
-      .BERT_BUF_MODE_EN(BERT_BUF_MODE_EN)
-    ) aib_channel_inst (
-      .vddc2(vddc2),
-      .vddc1(vddc1),
-      .vddtx(vddtx),
-      .vss(vss),
+    for (i = 0; i < NBR_CHNLS; i = i + 1) begin : channel_logic
+        
+        localparam DATA_F_WIDTH = NBR_LANES * NBR_PHASES * 2;
+        localparam DATA_WIDTH = NBR_LANES * 2;
 
-      .iopad_aib(iopad_aib_ports[i]),
+        if (i < ACTIVE_CHNLS) begin : active_channel_inst
+            // This block instantiates a fully functional AIB channel.
+            aib_channel_n #( 
+                .NBR_LANES(NBR_LANES),
+                .SCAN_STR_PER_CH(SCAN_STR_PER_CH),
+                .BERT_BUF_MODE_EN(BERT_BUF_MODE_EN)
+            ) aib_channel_inst ( 
+                .vddc2 (vddc2),
+                .vddc1 (vddc1),
+                .vddtx (vddtx),
+                .vss   (vss),
+                
+                .iopad_aib(iopad_ch_array[i]),
+                .data_in_f(data_in_f[DATA_F_WIDTH*(i+1)-1 : DATA_F_WIDTH*i]),
+                .data_out_f(data_out_f[DATA_F_WIDTH*(i+1)-1 : DATA_F_WIDTH*i]),
+                .data_in(data_in[DATA_WIDTH*(i+1)-1 : DATA_WIDTH*i]),
+                .data_out(data_out[DATA_WIDTH*(i+1)-1 : DATA_WIDTH*i]),
+                .m_ns_fwd_clk(m_ns_fwd_clk[i]), 
+                .m_fs_rcv_clk(m_fs_rcv_clk[i]), 
+                .m_fs_fwd_clk(m_fs_fwd_clk[i]), 
+                .m_ns_rcv_clk(m_ns_rcv_clk[i]), 
+                .m_wr_clk(m_wr_clk[i]),
+                .m_rd_clk(m_rd_clk[i]),
+                .ns_fwd_clk(ns_fwd_clk[i]),
+                .ns_fwd_clk_div (ns_fwd_clk_div[i]),
+                .fs_fwd_clk (fs_fwd_clk[i]),    
+                .fs_fwd_clk_div (fs_fwd_clk_div[i]),
+                .i_conf_done(i_conf_done), 
+                .ms_rx_dcc_dll_lock_req(ms_rx_dcc_dll_lock_req[i]),
+                .ms_tx_dcc_dll_lock_req(ms_tx_dcc_dll_lock_req[i]),
+                .sl_tx_dcc_dll_lock_req(sl_tx_dcc_dll_lock_req[i]),
+                .sl_rx_dcc_dll_lock_req(sl_rx_dcc_dll_lock_req[i]),
+                .ms_tx_transfer_en(ms_tx_transfer_en[i]),
+                .ms_rx_transfer_en(ms_rx_transfer_en[i]),
+                .sl_tx_transfer_en(sl_tx_transfer_en[i]),
+                .sl_rx_transfer_en(sl_rx_transfer_en[i]),
+                .m_rx_align_done(m_rx_align_done[i]),
+                .sr_ms_tomac(sr_ms_tomac[MS_SSR_LEN*(i+1)-1 : MS_SSR_LEN*i]),
+                .sr_sl_tomac(sr_sl_tomac[SL_SSR_LEN*(i+1)-1 : SL_SSR_LEN*i]),
+                .dual_mode_select(dual_mode_select),
+                .m_gen2_mode(m_gen2_mode),
+                .sl_external_cntl_26_0(sl_external_cntl_26_0[27*(i+1)-1 : 27*i]),
+                .sl_external_cntl_30_28(sl_external_cntl_30_28[3*(i+1)-1 : 3*i]),
+                .sl_external_cntl_57_32(sl_external_cntl_57_32[26*(i+1)-1 : 26*i]),
+                .ms_external_cntl_4_0(ms_external_cntl_4_0[5*(i+1)-1 : 5*i]),
+                .ms_external_cntl_65_8(ms_external_cntl_65_8[58*(i+1)-1 : 58*i]),
+                .ns_adapter_rstn(ns_adapter_rstn[i]),
+                .ns_mac_rdy(ns_mac_rdy[i]),
+                .fs_mac_rdy(fs_mac_rdy[i]),
+                .por(o_m_power_on_reset),
+                .i_osc_clk(i_osc_clk),
+                .txrx_anaviewout(txrx_anaviewout[4*(i+1)-1 : 4*i]),
+                .tx_dll_anaviewout(tx_dll_anaviewout[i]),
+                .rx_dll_anaviewout(rx_dll_anaviewout[i]),
+                .dcs_anaviewout(dcs_anaviewout[i]),
+                .digviewout(digviewout[2*(i+1)-1 : 2*i]),
+                // JTAG interface with daisy-chaining for scan_in
+                .jtag_clkdr_in(i_jtag_clkdr),
+                .i_jtag_clksel(i_jtag_clksel),
+                .scan_out(o_jtag_tdo_ch[i]),
+                .jtag_intest(i_jtag_intest),
+                .jtag_mode_in(i_jtag_mode),
+                .jtag_rstb(i_jtag_rstb),
+                .jtag_rstb_en(i_jtag_rstb_en),
+                .jtag_weakpdn(i_jtag_weakpdn),
+                .jtag_weakpu(i_jtag_weakpu),
+                .jtag_tx_scanen_in(i_jtag_tx_scanen),
+                .scan_in((i == 0) ? i_jtag_tdi : o_jtag_tdo_ch[i-1]),
+                .i_scan_clk(i_scan_clk),
+                .i_scan_clk_500m(i_scan_clk_500m),
+                .i_scan_clk_1000m(i_scan_clk_1000m),
+                .i_scan_en(i_scan_en),
+                .i_scan_mode(i_scan_mode),
+                .i_scan_din(i_scan_din[SCAN_STR_PER_CH*(i+1)-1 : SCAN_STR_PER_CH*i]),
+                .i_scan_dout(i_scan_dout[SCAN_STR_PER_CH*(i+1)-1 : SCAN_STR_PER_CH*i]),
+                .i_channel_id(6'(i)), 
+                .i_cfg_avmm_clk(i_cfg_avmm_clk),
+                .i_cfg_avmm_rst_n(i_cfg_avmm_rst_n),
+                .i_cfg_avmm_addr(i_cfg_avmm_addr), 
+                .i_cfg_avmm_byte_en(i_cfg_avmm_byte_en), 
+                .i_cfg_avmm_read(i_cfg_avmm_read), 
+                .i_cfg_avmm_write(i_cfg_avmm_write), 
+                .i_cfg_avmm_wdata(i_cfg_avmm_wdata), 
+                .o_cfg_avmm_rdatavld(o_cfg_avmm_rdatavld_ch[i]),
+                .o_cfg_avmm_rdata(o_rdata_ch_gen[i]), 
+                .o_cfg_avmm_waitreq(o_cfg_avmm_waitreq_ch[i])
+            );
+        end else begin : inactive_channel_stub
+            // This block handles unused channels by tying off their outputs to a safe,
+            // low-power standby state as per the AIB specification (Sec 3.1.1).
+            
+            // Tie off data and clock outputs to logic LOW
+            
+            assign data_out_f[DATA_F_WIDTH*(i+1)-1 : DATA_F_WIDTH*i] = '0;
+            assign data_out[DATA_WIDTH*(i+1)-1 : DATA_WIDTH*i] = '0;
+            assign m_fs_rcv_clk[i] = 1'b0;
+            assign m_fs_fwd_clk[i] = 1'b0;
+            assign ns_fwd_clk[i] = 1'b0;
+            assign ns_fwd_clk_div[i] = 1'b0;
+            assign fs_fwd_clk[i] = 1'b0;
+            assign fs_fwd_clk_div[i] = 1'b0;
+            
+            // Tie off status and control signals to logic LOW (inactive state)
+            assign fs_mac_rdy[i] = 1'b0;
+            assign ms_tx_transfer_en[i] = 1'b0;
+            assign ms_rx_transfer_en[i] = 1'b0;
+            assign sl_tx_transfer_en[i] = 1'b0;
+            assign sl_rx_transfer_en[i] = 1'b0;
+            assign m_rx_align_done[i] = 1'b0;
+            
+            // Tie off sideband outputs to logic LOW
+            assign sr_ms_tomac[MS_SSR_LEN*(i+1)-1 : MS_SSR_LEN*i] = '0;
+            assign sr_sl_tomac[SL_SSR_LEN*(i+1)-1 : SL_SSR_LEN*i] = '0;
+            
+            // Tristate the main channel IO pads
+            assign iopad_ch_array[i] = {NBR_BUMPS{1'bz}};
+            
+            // Tie off scan output
+            assign i_scan_dout[SCAN_STR_PER_CH*(i+1)-1 : SCAN_STR_PER_CH*i] = '0;
 
-      .data_in_f(data_in_f[320 * (i + 1) - 1:320 * i]),
-      .data_out_f(data_out_f[320 * (i + 1) - 1:320 * i]),
-      .data_in(data_in[80 * (i + 1) - 1:80 * i]),
-      .data_out(data_out[80 * (i + 1) - 1:80 * i]),
+            // Tie off analog view outputs
+            assign txrx_anaviewout[4*(i+1)-1 : 4*i] = '0;
+            assign tx_dll_anaviewout[i] = 1'b0;
+            assign rx_dll_anaviewout[i] = 1'b0;
+            assign dcs_anaviewout[i] = 1'b0;
+            assign digviewout[2*(i+1)-1 : 2*i] = '0;
+            
+            // Bypass the JTAG chain for inactive channels
+            assign o_jtag_tdo_ch[i] = (i == 0) ? i_jtag_tdi : o_jtag_tdo_ch[i-1];
+            
+            assign iopad_ch_array[i] = 102'bz;
 
-      .m_ns_fwd_clk(m_ns_fwd_clk[i]),
-      .m_fs_rcv_clk(m_fs_rcv_clk[i]),
-      .m_fs_fwd_clk(m_fs_fwd_clk[i]),
-      .m_ns_rcv_clk(m_ns_rcv_clk[i]),
-      .m_wr_clk(m_wr_clk[i]),
-      .m_rd_clk(m_rd_clk[i]),
-      .ns_fwd_clk(ns_fwd_clk[i]),
-      .ns_fwd_clk_div(ns_fwd_clk_div[i]),
-      .fs_fwd_clk(fs_fwd_clk[i]),
-      .fs_fwd_clk_div(fs_fwd_clk_div[i]),
 
-      .i_conf_done(i_conf_done),
-      .ms_rx_dcc_dll_lock_req(ms_rx_dcc_dll_lock_req[i]),
-      .ms_tx_dcc_dll_lock_req(ms_tx_dcc_dll_lock_req[i]),
-      .sl_tx_dcc_dll_lock_req(sl_tx_dcc_dll_lock_req[i]),
-      .sl_rx_dcc_dll_lock_req(sl_rx_dcc_dll_lock_req[i]),
-      .ms_tx_transfer_en(ms_tx_transfer_en[i]),
-      .ms_rx_transfer_en(ms_rx_transfer_en[i]),
-      .sl_tx_transfer_en(sl_tx_transfer_en[i]),
-      .sl_rx_transfer_en(sl_rx_transfer_en[i]),
-      .m_rx_align_done(m_rx_align_done[i]),
+            assign iopad_aib = {102{1'bz}};
 
-      .sr_ms_tomac(sr_ms_tomac[MS_SSR_LEN * (i + 1) - 1:MS_SSR_LEN * i]),
-      .sr_sl_tomac(sr_sl_tomac[SL_SSR_LEN * (i + 1) - 1:SL_SSR_LEN * i]),
-
-      .dual_mode_select(dual_mode_select),
-      .m_gen2_mode(m_gen2_mode),
-
-      .sl_external_cntl_26_0(sl_external_cntl_26_0[27 * (i + 1) - 1:27 * i]),
-      .sl_external_cntl_30_28(sl_external_cntl_30_28[3 * (i + 1) - 1:3 * i]),
-      .sl_external_cntl_57_32(sl_external_cntl_57_32[26 * (i + 1) - 1:26 * i]),
-
-      .ms_external_cntl_4_0(ms_external_cntl_4_0[5 * (i + 1) - 1:5 * i]),
-      .ms_external_cntl_65_8(ms_external_cntl_65_8[58 * (i + 1) - 1:58 * i]),
-
-      .ns_adapter_rstn(ns_adapter_rstn[i]),
-      .ns_mac_rdy(ns_mac_rdy[i]),
-      .fs_mac_rdy(fs_mac_rdy[i]),
-      .por(o_m_power_on_reset),
-      .i_osc_clk(i_osc_clk),
-      .txrx_anaviewout(txrx_anaviewout[4 * (i + 1) - 1:4 * i]),
-      .tx_dll_anaviewout(tx_dll_anaviewout[i]),
-      .rx_dll_anaviewout(rx_dll_anaviewout[i]),
-      .dcs_anaviewout(dcs_anaviewout[i]),
-      .digviewout(digviewout[2 * (i + 1) - 1:2 * i]),
-
-      //JTAG interface
-      .jtag_clkdr_in(i_jtag_clkdr),
-      .i_jtag_clksel(i_jtag_clksel),
-      .scan_out(o_jtag_tdo_ch[i]),
-      .jtag_intest(i_jtag_intest),
-      .jtag_mode_in(i_jtag_mode),
-      .jtag_rstb(i_jtag_rstb),
-      .jtag_rstb_en(i_jtag_rstb_en),
-      .jtag_weakpdn(i_jtag_weakpdn),
-      .jtag_weakpu(i_jtag_weakpu),
-      .jtag_tx_scanen_in(i_jtag_tx_scanen),
-      .scan_in((i == 0) ? i_jtag_tdi : o_jtag_tdo_ch[i - 1]),
-      .i_scan_clk(i_scan_clk),
-      .i_scan_clk_500m(i_scan_clk_500m),
-      .i_scan_clk_1000m(i_scan_clk_1000m),
-      .i_scan_en(i_scan_en),
-      .i_scan_mode(i_scan_mode),
-      .i_scan_din(i_scan_din[(SCAN_STR_PER_CH * (i + 1)) - 1:(SCAN_STR_PER_CH * i)]),
-      .i_scan_dout(i_scan_dout[(SCAN_STR_PER_CH * (i + 1)) - 1:(SCAN_STR_PER_CH * i)]),
-
-      .i_channel_id(i),
-      .i_cfg_avmm_clk(i_cfg_avmm_clk),
-      .i_cfg_avmm_rst_n(i_cfg_avmm_rst_n),
-      .i_cfg_avmm_addr(i_cfg_avmm_addr),
-      .i_cfg_avmm_byte_en(i_cfg_avmm_byte_en),
-      .i_cfg_avmm_read(i_cfg_avmm_read),
-      .i_cfg_avmm_write(i_cfg_avmm_write),
-      .i_cfg_avmm_wdata(i_cfg_avmm_wdata),
-
-      .o_cfg_avmm_rdatavld(o_cfg_avmm_rdatavld_ch[i]),
-      .o_cfg_avmm_rdata(o_rdata_ch_packed[(i + 1) * 32 - 1 -: 32]),
-      .o_cfg_avmm_waitreq(o_cfg_avmm_waitreq_ch[i])
-    );
-  end
-endgenerate
-
-// <<< FIX: Generate loop to tie off all outputs of inactive channels
-generate
-    for (i = ACTIVE_CHNLS; i < NBR_CHNLS; i = i + 1) begin : gen_inactive_channels
-        // Tie off AVMM signals
-        assign o_cfg_avmm_rdatavld_ch[i] = 1'b0;
-        assign o_cfg_avmm_waitreq_ch[i]  = 1'b1;
-        assign o_rdata_ch_packed[(i+1)*32-1 -: 32] = 32'b0;
-
-        // Tie off JTAG chain
-        assign o_jtag_tdo_ch[i] = (i == 0) ? 1'b0 : o_jtag_tdo_ch[i-1];
-
-        // Tie off main data and control outputs
-        assign data_out_f[320*(i+1)-1:320*i] = '0;
-        assign data_out[80*(i+1)-1:80*i] = '0;
-        assign m_fs_rcv_clk[i] = 1'b0;
-        assign m_fs_fwd_clk[i] = 1'b0;
-        assign ns_fwd_clk[i] = 1'b0;
-        assign ns_fwd_clk_div[i] = 1'b0;
-        assign fs_fwd_clk[i] = 1'b0;
-        assign fs_fwd_clk_div[i] = 1'b0;
-        assign fs_mac_rdy[i] = 1'b0;
-        assign ms_tx_transfer_en[i] = 1'b0;
-        assign ms_rx_transfer_en[i] = 1'b0;
-        assign sl_tx_transfer_en[i] = 1'b0;
-        assign sl_rx_transfer_en[i] = 1'b0;
-        assign m_rx_align_done[i] = 1'b0;
-        assign sr_ms_tomac[MS_SSR_LEN*(i+1)-1:MS_SSR_LEN*i] = '0;
-        assign sr_sl_tomac[SL_SSR_LEN*(i+1)-1:SL_SSR_LEN*i] = '0;
-        assign i_scan_dout[(SCAN_STR_PER_CH*(i+1))-1:(SCAN_STR_PER_CH*i)] = '0;
+            // Tie off AVMM signals for this channel
+            assign o_cfg_avmm_rdatavld_ch[i] = 1'b0;       // No valid data
+            assign o_cfg_avmm_waitreq_ch[i]  = 1'b1;       // Always busy
+            assign o_rdata_ch_gen[i]         = 32'bz;      // Read data is zero
+        end
     end
 endgenerate
 
+
+//------------------------------------------------------------------------------
 // Auxiliary channel
+//------------------------------------------------------------------------------
 aibio_auxch_cbb aibio_auxch_cbb
 (
 //----supply pins----//
