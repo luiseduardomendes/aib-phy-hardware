@@ -617,7 +617,7 @@ generate
             // Tie off AVMM signals for this channel
             assign o_cfg_avmm_rdatavld_ch[i] = 1'b0;       // No valid data
             assign o_cfg_avmm_waitreq_ch[i]  = 1'b1;       // Always busy
-            assign o_rdata_ch_gen[i]         = 32'bz;      // Read data is zero
+            assign o_rdata_ch_gen[i]         = 32'b0;      // Read data is zero
         end
     end
 endgenerate
